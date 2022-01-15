@@ -114,14 +114,25 @@ function Cloud(img_path){
     this.timecount = 0;
     if (random(1) < 0.5) {
         this.direction = "right";
-        this.step = 1;
     }else{
         this.direction = "left";
-        this.step = 1;
     }
-    
 }
 
+Cloud.prototype.restart = function(){
+    this.width = random(50, 600);
+    this.height = int(this.width / 3);
+    this.x = random(-450, 450);
+    this.y = random(0, 300);
+    this.step_size = random(0.5, 3);
+    if (random(1) < 0.5) {
+        this.direction = "right";
+    }else{
+        this.direction = "left";
+    }
+    this.timecount = 0;
+  
+}
 Cloud.prototype.draw = function() {
     this.timecount += 1;
     if(this.direction == "right"){ // 往右走
@@ -131,17 +142,7 @@ Cloud.prototype.draw = function() {
             image(this.image, this.x, this.y, this.width, this.height);
         }else{
             // 重新設定下次位置
-            this.width = random(50, 600);
-            this.height = int(this.width / 3);
-            this.x = random(-450, 450);
-            this.y = random(0, 300);
-            this.step_size = random(0.5, 3);
-            if (random(1) < 0.5) {
-                this.direction = "right";
-            }else{
-                this.direction = "left";
-            }
-            this.timecount = 0;
+            this.restart();
         }
     }else{ // 往左走
         this.x = canvasSize - (this.timecount/this.step_size);
@@ -150,20 +151,9 @@ Cloud.prototype.draw = function() {
             image(this.image, this.x, this.y, this.width, this.height);
         }else{
             // 重新設定下次位置
-            this.width = random(50, 600);
-            this.height = int(this.width / 3);
-            this.x = random(-450, 450);
-            this.y = random(0, 300);
-            this.step_size = random(0.5, 3);
-            if (random(1) < 0.5) {
-                this.direction = "right";
-            }else{
-                this.direction = "left";
-            }
-            this.timecount = 0;
+            this.restart();
         }
     }
-
 }
 
 //舊版的雲(應該不會再用到了)
