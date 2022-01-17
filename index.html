@@ -8,10 +8,13 @@
     <script src="p5.sound.min.js"></script>
     <script>
         var patch
-        $.get('testpd2.txt', function(patchStr) {
+        $.get('main.txt', function(patchStr) {
           patch = Pd.loadPatch(patchStr)
           Pd.start()
         })
+        // Pd.receive('osc_num', function(args) {
+        //   console.log('received a message from "osc_num" : ', args)
+        // })
     </script>
     <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="utf-8">

@@ -9,12 +9,22 @@ var colorsBlue = "04080f-507dbc-a1c6ea-bbd1ea-dae3e5".split("-").map(a=>"#"+a) /
 var blur_ctrl = 0;
 var blur_ctrl_flag = false; // false 代表"從 0 往上數, true 代表從最高往下數"的判斷標籤
 var stars = [];
-var star_num = 50;
+var star_num = 30;
 var clouds = [];
 var cloud_object;
 var cloud_init_y = 0;
 var canvasSize;
 var shooting_stars = [];
+
+var lanterns = []
+
+// 放音樂
+var audioCtx = null;
+var analysers = [];
+
+// 畫山
+var cFurther, cCloser, cMist;
+var a, b, c, d, e;
 
 function preload() {
     // preload() runs once
@@ -29,6 +39,15 @@ function preload() {
     cloud_object5 = new Cloud('cloud3.png');
     clouds.push(cloud_object5);
     cloud_init_y = int(random(0, 100));
+  
+    // 燈籠 (目前還都是用燈泡測試)
+    lantern_object1 = new Lantern('lightbulb.png');
+    lanterns.push(lantern_object1);
+    lantern_object2 = new Lantern('lightbulb1.png');
+    lanterns.push(lantern_object2);
+  
+    // 先把音樂灌好
+    // GetAudio();
 }
 
 function setup(){
@@ -47,13 +66,23 @@ function setup(){
     // console.log(parseInt(random(0, 2)));
     createStars();
     noStroke();
+  
+    cFurther = color(255, 255, 255);
+    cCloser = color(0, 0, 0);
+    cMist = color(255,255,255);
+  
+    a = random(-width/2, width/2);  //random discrepancy between the sin waves
+    b = random(-width/2, width/2);  //random discrepancy between the sin waves  
+    c = random(2, 4);  //random amplitude for the second sin wave
+    d = random(40, 50);  //noise function amplitude
+    e = random(-width/2, width/2);
 }
 function draw(){
 	noStroke();
     colorMode(RGB);
     eveningBackground();
-    if (random(1) < 0.03) {
-      fireworks.push(new Firework());
+    if (random(1) < 0.015 && fireworks.length < 4) {
+        fireworks.push(new Firework());
     }
     // fireworks.push(new Firework());
     for (var i = fireworks.length-1; i >= 0; i--) {
@@ -86,12 +115,21 @@ function draw(){
 	// mountain();
     // ground();
     // starFly();
-    building();
+    mountains(cCloser, cFurther, cMist);
+    // building();
     // drawCloud();
     for (var i = clouds.length-1; i >= 0; i--) {
         clouds[i].draw();
     }
+    
+    // 燈籠  
+    // if(frameCount % 2 == 0){
+    //   lanterns[0].draw();
+    // }else{
+    //   lanterns[1].draw();
+    // }
   
+
 }
 
 function mountain(){
@@ -102,6 +140,18 @@ function mountain(){
 	vertex(500,350);
 	vertex(600,450);
 	endShape(CLOSE);
+}
+  
+function Lantern(img_path){
+    this.image = loadImage(img_path);
+    this.width = 300;
+    this.height = 300;
+    this.x = 200;
+    this.y = 200;
+}
+
+Lantern.prototype.draw = function() {
+    image(this.image, this.x, this.y, this.width, this.height);
 }
 
 function Cloud(img_path){
@@ -133,6 +183,7 @@ Cloud.prototype.restart = function(){
     this.timecount = 0;
   
 }
+
 Cloud.prototype.draw = function() {
     this.timecount += 1;
     if(this.direction == "right"){ // 往右走
@@ -156,39 +207,39 @@ Cloud.prototype.draw = function() {
     }
 }
 
-//舊版的雲(應該不會再用到了)
-// function drawCloud(){  // 還沒做完!!!!!!!!
-//     // frameCount/0.1 是為了往右移動，除數是掌控速率
-//     // image(雲的物件, frameCount/4, y 的位置, 圖片長, 圖片寬);
-//     cloud_x = frameCount/3 - 200;
-//     negative_cloud_x = canvasSize -(frameCount/0.1);
-//     console.log(negative_cloud_x);
-//     if(cloud_x <= windowWidth){
-//         image(clouds[0], cloud_x, cloud_init_y, 200, 100);
-//         image(clouds[1], negative_cloud_x, cloud_init_y-30, 100, 50);
-//         image(clouds[2], cloud_x+150, cloud_init_y+50, 400, 100);
-//     }else{
-//         frameCount = 0;
-//     }
-// }
-
 // 目前先亂做的，之後畫剪影再改這邊
 function building(){
     // background(200, 200, 210);
     noStroke();
+  
+    // 近的房子 (灰色)
+    fill(100);
+    var x = 0;
+    var amplitude = 300;
+    var frequency = 0.03;
+    var _width = 600
+    var _height = 650
+    for (x = 0; x < windowWidth; x += 15) {
+      let buildingHeight = noise(x * frequency) * amplitude;
+      rect(x, windowHeight * 0.98 - buildingHeight, 20, windowHeight);
+    }  
+  
+    // 近的房子 (黑色)
     fill(0);
     var x = 0;
-    var amplitude = 200;
+    var amplitude = 160;
     var frequency = 0.02;
     var _width = 600
     var _height = 650
-    for (x = 0; x < windowWidth; x += 20) {
+    for (x = 0; x < windowWidth; x += 10) {
       let buildingHeight = noise(x * frequency) * amplitude;
-      rect(x, _height * 0.9 - buildingHeight, 20, buildingHeight);
-    }
+      rect(x, windowHeight * 0.98 - buildingHeight, 20, windowHeight);
+    }  
 
     fill(0);
-    rect(0, _height * 0.9, _width, _height * 0.5);
+    rect(0, windowHeight * 0.98, windowWidth, windowHeight);
+  
+  
 }
 
 
@@ -209,16 +260,35 @@ function star() {
    this.y = random(windowHeight-200);
    this.size_x = int(random(1, 4));
    this.size_y = this.size_x;
+   this.timeCount = int(random(0, 12));
+   var dice = random(1);
+   //  if(dice < 0.2){
+   //     this.initila_color = "#FFFFAA" // 黃色
+   // }else if(dice >= 0.2 && dice < 0.4){
+   //     this.initila_color = "#FF8000" // 橘色   
+   // }else if(dice >= 0.4 && dice < 0.6){
+   //     this.initila_color = "#93FF93" // 綠色     
+   // }else if(dice >= 0.6 && dice < 0.8){
+   //     this.initila_color = "#A6FFFF" // 藍色     
+   // }else{
+   //     this.initila_color = "#B9B9FF" // 淺紫色
+   // }
+    this.initila_color = "#FFFFFF";
+     
 }
 
 star.prototype.draw = function() {
     noStroke();
     colorMode(RGB);
-    if(frameCount % 12 == 0){
-      fill(255, 255, 255); // 全白
+    this.timeCount += 1;
+    if(this.timeCount % 12 == 0){
+      fill(this.initila_color); // 初始顏色
       ellipse(this.x, this.y, this.size_x, this.size_y);
-    }else{
-      fill(192,192,192); // 銀色
+    }else if(this.timeCount % 12 == 6){
+      fill(this.initila_color); // 銀色
+      ellipse(this.x, this.y, this.size_x, this.size_y);
+    } else{
+      fill(192,192,192); // 淺銀色
       ellipse(this.x, this.y, this.size_x, this.size_y);
     }
     
@@ -272,10 +342,10 @@ function moon(x, y){
     circle(moon_X, moon_Y, 60);
     // 待畫
     // 月亮斑點 (還沒弄好)
-    noStroke();
-    fill("gray");
-    circle(moon_X + 10, moon_Y + 10, 15); 
-    circle(moon_X - 10, moon_Y - 10, 25);
+    // noStroke();
+    // fill("gray");
+    // circle(moon_X + 10, moon_Y + 10, 15); 
+    // circle(moon_X - 10, moon_Y - 10, 25);
     
     pop();
     
@@ -297,7 +367,7 @@ function setGradient(x, y, w, h, c1, c2, axis) {
   noFill();
   if (axis == "Y") {  // Top to bottom gradient
     for (let i = y; i <= y+h; i++) {
-      var inter = map(i, y, y+h, 0, 1);
+      var inter = map(i, y, y+h, 0, 0.85);
       var c = lerpColor(c1, c2, inter);
       stroke(c);
       line(x, i, x+w, i);
@@ -326,10 +396,27 @@ function nightBackground(){
 }
 
 
+// function GetAudio() {
+//    if(Pd.getAudio() == null) {
+//     console.log("can not get audio");
+//   }
+  
+//   audioCtx = Pd.getAudio().context;
+  
+//   for(let i = 0; i < 3; i++){
+//      analysers[i] = audioCtx.createAnalyser();
+//      patch.o(i).getOutNode().connect(analysers[i]);    
+//   }
+  
+// }
+
+
 // 煙火
 function Firework() {
-  this.hu = random(255);
-  this.firework = new Particle(random(width), height, this.hu, true);
+  this.hu1 = random(60, 255);
+  this.hu2 = random(60, 255);
+  this.hu3 = random(60, 255);
+  this.firework = new Particle(random(width), height * 0.75, this.hu1, this.hu2, this.hu3, true);
   this.exploded = false;
   this.particles = [];
   
@@ -348,7 +435,7 @@ function Firework() {
       if (this.firework.vel.y >= 0) {
         this.exploded = true;
         this.explode();
-        Pd.send('hit', ['bang']); // 爆掉的時候才要發出聲音
+        Pd.send('bgm_start', ['bang']); // 爆掉的時候才要發出聲音
       }
     }
  for (var i = this.particles.length-1; i >= 0; i--) {
@@ -363,7 +450,7 @@ function Firework() {
   this.explode = function() {
     var firework_num = int(random(200, 600)); // 看一次煙火要製造多少顆粒子
     for (var i = 0; i < firework_num; i++) {
-      var p = new Particle(this.firework.pos.x, this.firework.pos.y, this.hu, false);
+      var p = new Particle(this.firework.pos.x, this.firework.pos.y, this.hu1, this.hu2, this.hu3, false);
       this.particles.push(p);
     }     
   }
@@ -378,11 +465,13 @@ function Firework() {
 }
 
 // 煙火會用到的粒子效果
-function Particle(x, y, hu, firework) {
+function Particle(x, y, hu1, hu2, hu3, firework) {
     this.pos = createVector(x, y);
     this.firework = firework;
     this.lifespan = 255;
-    this.hu = hu;
+    this.hu1 = hu1;
+    this.hu2 = hu2;
+    this.hu3 = hu3;
 
   if (this.firework){
    this.vel = createVector(0, random(-12, -8));
@@ -391,7 +480,7 @@ function Particle(x, y, hu, firework) {
    this.vel.mult(random(2, 10));
  }
   
-  this.acc = createVector(0, 0);
+  this.acc = createVector(random(-1, 2), 0);
  
   this.applyForce = function(force) {
     this.acc.add(force);
@@ -417,12 +506,45 @@ function Particle(x, y, hu, firework) {
    colorMode(HSB);
     if (!this.firework) {
       strokeWeight(2); // 煙火爆炸的時候的粒子大小
-      stroke(hu, 255, 255, this.lifespan);
+      stroke(hu1, hu2, hu3, this.lifespan);
    }else {
      strokeWeight(4);
-     stroke(hu, 255, 255);
+     stroke(hu1, hu2, hu3);
    }
     point(this.pos.x, this.pos.y);
    
+  }
+}
+
+function mountains(closerColor, furtherColor, mistColor){
+  var y0 = width - width * 0.5; // 調整山的高度
+  var i0 = 30; 
+  
+  var cy = [3];
+  for (var j = 0; j < 3; j++)
+  {
+    cy[2-j] = y0;
+    y0 -= i0 / pow(1.2, j);
+  }
+  
+  
+  //DRAW/
+  var dx = 0;
+  
+  for (var j = 0; j <  4; j++)
+  {                  
+    for (var x = 0; x < width; x ++)
+    {          
+      var y = cy[j]; //y = reference y
+      y += d*(j+6)*noise(1.2*dx/(j+6)+e);  //adds randomness to the mountains
+      y += 1.7*(j+6)*noise(10*dx);  //adds trees
+      
+      strokeWeight(2);  //smoove peaks
+      stroke(lerpColor(furtherColor, closerColor, (j+6)/10));
+      line(x, y, x, windowHeight); 
+      
+      dx += 0.02;
+    }
+    
   }
 }
