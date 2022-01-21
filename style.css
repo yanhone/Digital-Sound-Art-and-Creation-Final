@@ -5,3 +5,12 @@ html, body {
 canvas {
   display: block;
 }
+
+@media screen and (max-width: 700px) {
+  aside {
+    opacity: 0;
+    width: 0;
+    border: none;
+    font-size: 0;
+  }
+}
