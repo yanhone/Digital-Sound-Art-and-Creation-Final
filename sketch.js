@@ -28,14 +28,23 @@ var musicFiles = [];
 var audioCtx;
 var audio;
 var audioSrc;
-var analyser;
+var analysers = [];
+var analyser; 
 var bufferLength;
 var dataArray;
 var background_music;
 var initial_volume = 0.25;
+var _range;
+var analy;
+var volArray;
+const sampleSize = 128;
 // 山
 var cFurther, cCloser;
 var a, b, c, d, e;
+
+var _min = 9999; // test
+var _max = 0; // test
+
 
 function preload() {
     windowWidth = windowHeight;
@@ -89,8 +98,11 @@ function preload() {
     vendors.push(new Vendor('vendor-3.png', int(windowWidth * (2/3) + 1), windowHeight - int(windowHeight / 3)));
   
     // 先把音樂灌好
-    background_music = loadSound("firework_festival.mp3");
-    background_music.setVolume(initial_volume);
+    // background_music = loadSound("firework_festival.mp3");
+    // background_music.setVolume(initial_volume);
+  
+    // Pd.send("load_bgm", ["firework_festival.wav"]);
+    
 }
 
 function setup(){
@@ -99,7 +111,11 @@ function setup(){
     }else{
       canvasSize = windowWidth;
     }
-    createCanvas(canvasSize, canvasSize);
+    createCanvas(canvasSize, canvasSize);  
+  
+    for(let i = 0; i < 6; i++){
+      analysers[i] = null;
+    }
     gravity = createVector(0, 0.2);
     stroke(255);
     strokeWeight(4);
@@ -117,13 +133,18 @@ function setup(){
     d = random(40, 50);  //noise function amplitude
     e = random(-width/2, width/2);
   
-    background_music.loop();
+    // background_music.loop();
   
-    analyzer = new p5.Amplitude();
-    analyzer.setInput(background_music);
+    Pd.send('bgm_start', ['bang']);
+    Pd.send("volume", [initial_volume]);
+  
+    // analyzer = new p5.Amplitude();
+    // analyzer.setInput();
+  
+    getAudio();
 }
 
-function draw(){
+function draw(){  
 	noStroke();
     colorMode(RGB);
     if(normal_moon_ctrl == true){
@@ -159,16 +180,30 @@ function draw(){
         clouds[i].draw();
     }
   
-    var rms = analyzer.getLevel();
+    analy.getByteFrequencyData(volArray);
+    var averageVolume = getAverageVolume(volArray)
+    // print(averageVolume);
+//     if(averageVolume > _max){
+//       _max = averageVolume;
+//     }
+  
+//     if(averageVolume < _min){
+//       _min = averageVolume;
+//     }
+  
+    // print(_max, _min)
   
     // 聲音震幅
-    _range = 1 * initial_volume;
-    _range *= 0.2948;
-    _range /= 8;
+
+    max_v = 4.8 + 0.65 * ((initial_volume - 0.25) / 0.25)
+    min_v = 3.6 + 0.1 * ((initial_volume - 0.25) / 0.25)
+    _range = (max_v - min_v) / 7
+    //print(max_v, min_v)
     
     // 燈籠
-    // 奇數都是暗的
-    if(rms <= _range){
+    // 奇數都是暗的  
+    // 這裡是用振幅計算的
+    if(averageVolume <= (min_v + _range)){
       lanterns[1].draw(); // 完全不亮
       lanterns[3].draw();
       lanterns[5].draw();
@@ -176,7 +211,7 @@ function draw(){
       lanterns[9].draw();
       lanterns[11].draw();
       lanterns[13].draw();
-    }else if(rms >= _range && rms < _range * 2){
+    }else if(averageVolume >= (min_v + _range) && averageVolume < (min_v + _range * 2)){
       lanterns[0].draw(); // 亮第一顆
       lanterns[3].draw();
       lanterns[5].draw();
@@ -184,7 +219,7 @@ function draw(){
       lanterns[9].draw();
       lanterns[11].draw();
       lanterns[13].draw();
-    }else if(rms >= _range * 2 && rms < _range * 3){
+    }else if(averageVolume >= (min_v + _range * 2) && averageVolume < (min_v + _range * 3)){
       lanterns[0].draw(); // 亮第一顆
       lanterns[2].draw(); // 亮第二顆
       lanterns[5].draw();
@@ -192,7 +227,7 @@ function draw(){
       lanterns[9].draw();
       lanterns[11].draw();
       lanterns[13].draw();
-    }else if(rms >= _range * 3 && rms < _range * 4){
+    }else if(averageVolume >= (min_v + _range * 3) && averageVolume < (min_v + _range * 4)){
       lanterns[0].draw(); // 亮第一顆
       lanterns[2].draw(); // 亮第二顆
       lanterns[4].draw(); // 亮第三顆
@@ -200,7 +235,7 @@ function draw(){
       lanterns[9].draw();
       lanterns[11].draw();
       lanterns[13].draw();
-    }else if(rms >= _range * 4 && rms < _range * 5){
+    }else if(averageVolume >= (min_v + _range * 4) && averageVolume < (min_v + _range * 5)){
       lanterns[0].draw(); // 亮第一顆
       lanterns[2].draw(); // 亮第二顆
       lanterns[4].draw(); // 亮第三顆
@@ -208,7 +243,7 @@ function draw(){
       lanterns[9].draw();
       lanterns[11].draw();
       lanterns[13].draw();
-    }else if(rms >= _range * 5 && rms < _range * 6){
+    }else if(averageVolume >= (min_v + _range * 5) && averageVolume < (min_v + _range * 6)){
       lanterns[0].draw(); // 亮第一顆
       lanterns[2].draw(); // 亮第二顆
       lanterns[4].draw(); // 亮第三顆
@@ -216,7 +251,7 @@ function draw(){
       lanterns[8].draw(); // 亮第五顆
       lanterns[11].draw();
       lanterns[13].draw();
-    }else if(rms >= _range * 6 && rms < _range * 7){
+    }else if(averageVolume >= (min_v + _range * 6) && averageVolume < max_v){
       lanterns[0].draw(); // 亮第一顆
       lanterns[2].draw(); // 亮第二顆
       lanterns[4].draw(); // 亮第三顆
@@ -247,7 +282,8 @@ function draw(){
     for (var i = vendors.length-1; i >= 0; i--) {
         vendors[i].draw();
     }
-  
+    // 重新更新
+    volArray = new Uint8Array(analy.fftSize);
 }
 
 function drawThread(){
@@ -340,38 +376,38 @@ Cloud.prototype.draw = function() {
     }
 }
 
-// 目前先亂做的，之後畫剪影再改這邊
-function building(){
-    // background(200, 200, 210);
-    noStroke();
+// // 目前先亂做的，之後畫剪影再改這邊
+// function building(){
+//     // background(200, 200, 210);
+//     noStroke();
   
-    // 近的房子 (灰色)
-    fill(100);
-    var x = 0;
-    var amplitude = 300;
-    var frequency = 0.03;
-    var _width = 600
-    var _height = 650
-    for (x = 0; x < windowWidth; x += 15) {
-      let buildingHeight = noise(x * frequency) * amplitude;
-      rect(x, windowHeight * 0.98 - buildingHeight, 20, windowHeight);
-    }  
+//     // 近的房子 (灰色)
+//     fill(100);
+//     var x = 0;
+//     var amplitude = 300;
+//     var frequency = 0.03;
+//     var _width = 600
+//     var _height = 650
+//     for (x = 0; x < windowWidth; x += 15) {
+//       let buildingHeight = noise(x * frequency) * amplitude;
+//       rect(x, windowHeight * 0.98 - buildingHeight, 20, windowHeight);
+//     }  
   
-    // 近的房子 (黑色)
-    fill(0);
-    var x = 0;
-    var amplitude = 160;
-    var frequency = 0.02;
-    var _width = 600
-    var _height = 650
-    for (x = 0; x < windowWidth; x += 10) {
-      let buildingHeight = noise(x * frequency) * amplitude;
-      rect(x, windowHeight * 0.98 - buildingHeight, 20, windowHeight);
-    }  
+//     // 近的房子 (黑色)
+//     fill(0);
+//     var x = 0;
+//     var amplitude = 160;
+//     var frequency = 0.02;
+//     var _width = 600
+//     var _height = 650
+//     for (x = 0; x < windowWidth; x += 10) {
+//       let buildingHeight = noise(x * frequency) * amplitude;
+//       rect(x, windowHeight * 0.98 - buildingHeight, 20, windowHeight);
+//     }  
 
-    fill(0);
-    rect(0, windowHeight * 0.98, windowWidth, windowHeight);  
-}
+//     fill(0);
+//     rect(0, windowHeight * 0.98, windowWidth, windowHeight);  
+// }
 
 function createStars(){
   for (var i = 0; i < star_num; i++) {
@@ -476,7 +512,8 @@ function keyPressed() {
       }
     }    
   }
-  background_music.setVolume(initial_volume);
+  Pd.send("volume", [initial_volume]);
+  // background_music.setVolume(initial_volume);
 }
 
 function mousePressed() {
@@ -487,6 +524,7 @@ function mousePressed() {
         normal_moon_ctrl = false;
       }else{
         normal_moon_ctrl = true;
+        Pd.send('bgm_start', ['bang']);
       }
     }
   
@@ -663,7 +701,7 @@ function Particle(x, y, hu1, hu2, hu3, firework) {
      strokeWeight(4);
      stroke(hu1, hu2, hu3);
    }
-    point(this.pos.x, this.pos.y);
+    point(int(this.pos.x), int(this.pos.y));
    
   }
 }
@@ -693,3 +731,21 @@ function mountains(closerColor, furtherColor){
     }    
   }
 }
+
+function getAudio(){
+  let context = Pd.getAudio().context;
+  analy = context.createAnalyser();
+  analy.fftSize = sampleSize;
+  patch.o(0).getOutNode().connect(analy);
+  volArray = new Uint8Array(analy.fftSize);
+}
+
+ function getAverageVolume(array) {
+      var amplitudeSum = 0;
+
+      for (var i = 0; i < array.length; i++) {
+          amplitudeSum += array[i];
+      }
+
+      return Math.sqrt(amplitudeSum / array.length);
+  }
